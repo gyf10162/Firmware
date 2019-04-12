@@ -258,13 +258,13 @@ Mavlink::Mavlink() :
 	mavlink_update_parameters();
 
 	// save the current system- and component ID because we don't allow them to change during operation
-	int sys_id = _param_system_id.get();
+	int sys_id = _param_mav_sys_id.get();
 
 	if (sys_id > 0 && sys_id < 255) {
 		mavlink_system.sysid = sys_id;
 	}
 
-	int comp_id = _param_component_id.get();
+	int comp_id = _param_mav_comp_id.get();
 
 	if (comp_id > 0 && comp_id < 255) {
 		mavlink_system.compid = comp_id;
@@ -302,16 +302,16 @@ Mavlink::mavlink_update_parameters()
 {
 	updateParams();
 
-	int32_t proto = _param_mav_proto_version.get();
+	int32_t proto = _param_mav_proto_ver.get();
 
 	if (_protocol_version_switch != proto) {
 		_protocol_version_switch = proto;
 		set_proto_version(proto);
 	}
 
-	if (_param_system_type.get() < 0 || _param_system_type.get() >= MAV_TYPE_ENUM_END) {
-		_param_system_type.set(0);
-		_param_system_type.commit_no_notification();
+	if (_param_mav_type.get() < 0 || _param_mav_type.get() >= MAV_TYPE_ENUM_END) {
+		_param_mav_type.set(0);
+		_param_mav_type.commit_no_notification();
 		PX4_ERR("MAV_TYPE parameter invalid, resetting to 0.");
 	}
 }
@@ -765,12 +765,21 @@ Mavlink::set_hil_enabled(bool hil_enabled)
 	if (hil_enabled && !_hil_enabled && _datarate > 5000) {
 		_hil_enabled = true;
 		ret = configure_stream("HIL_ACTUATOR_CONTROLS", 200.0f);
+
+		if (_param_sys_hitl.get() == 2) {		// Simulation in Hardware enabled ?
+			configure_stream("GROUND_TRUTH", 25.0f); 	// HIL_STATE_QUATERNION to display the SIH
+
+		} else {
+			configure_stream("GROUND_TRUTH", 0.0f);
+		}
 	}
 
 	/* disable HIL */
 	if (!hil_enabled && _hil_enabled) {
 		_hil_enabled = false;
 		ret = configure_stream("HIL_ACTUATOR_CONTROLS", 0.0f);
+
+		configure_stream("GROUND_TRUTH", 0.0f);
 	}
 
 	return ret;
@@ -2221,7 +2230,7 @@ Mavlink::task_main(int argc, char *argv[])
 
 #if defined(CONFIG_NET)
 
-			if (_param_broadcast_mode.get() != BROADCAST_MODE_MULTICAST) {
+			if (_param_mav_broadcast.get() != BROADCAST_MODE_MULTICAST) {
 				_src_addr_initialized = false;
 			}
 
@@ -2568,7 +2577,7 @@ void Mavlink::publish_telemetry_status()
 void Mavlink::check_radio_config()
 {
 	/* radio config check */
-	if (_uart_fd >= 0 && _param_radio_id.get() != 0
+	if (_uart_fd >= 0 && _param_mav_radio_id.get() != 0
 	    && _tstatus.type == telemetry_status_s::LINK_TYPE_3DR_RADIO) {
 		/* request to configure radio and radio is present */
 		FILE *fs = fdopen(_uart_fd, "w");
@@ -2579,9 +2588,9 @@ void Mavlink::check_radio_config()
 			fprintf(fs, "+++\n");
 			px4_usleep(1200000);
 
-			if (_param_radio_id.get() > 0) {
+			if (_param_mav_radio_id.get() > 0) {
 				/* set channel */
-				fprintf(fs, "ATS3=%u\n", _param_radio_id.get());
+				fprintf(fs, "ATS3=%u\n", _param_mav_radio_id.get());
 				px4_usleep(200000);
 
 			} else {
@@ -2612,8 +2621,8 @@ void Mavlink::check_radio_config()
 		}
 
 		/* reset param and save */
-		_param_radio_id.set(0);
-		_param_radio_id.commit_no_notification();
+		_param_mav_radio_id.set(0);
+		_param_mav_radio_id.commit_no_notification();
 	}
 }
 

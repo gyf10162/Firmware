@@ -12,6 +12,7 @@ px4_add_board(
 	SERIAL_PORTS
 		GPS1:/dev/ttyS3
 		TEL1:/dev/ttyS4
+		TEL2:/dev/ttyS1
 
 	DRIVERS
 		barometer # all available barometer drivers
@@ -35,6 +36,7 @@ px4_add_board(
 		lights/blinkm
 		lights/oreoled
 		lights/rgbled
+		lights/rgbled_ncp5623c
 		lights/rgbled_pwm
 		magnetometer # all available magnetometer drivers
 		mkblctrl
@@ -70,6 +72,7 @@ px4_add_board(
 		mc_pos_control
 		navigator
 		sensors
+		sih
 		vmount
 		vtol_att_control
 		wind_estimator
